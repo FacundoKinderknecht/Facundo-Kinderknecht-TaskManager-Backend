@@ -1,6 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router(); // Crea un objeto router de Express
 
@@ -28,5 +30,43 @@ router.post("/register", async (req, res) => {
         res.status(500).json({ message: "Error en el servidor" });
     }
 });
+
+// **Ruta de Login de Usuario**
+router.post("/login", async (req, res) => {
+    try {
+        // Extraemos email y password del body
+        const { email, password } = req.body;
+
+        // Verificamos si el usuario existe en la base de datos
+        const usuario = await User.findOne({ email });
+        if (!usuario) {
+            return res.status(400).json({ message: "Usuario no encontrado" });
+        }
+
+        // Comparamos la contraseña ingresada con la almacenada (encriptada)
+        const passwordValido = await bcrypt.compare(password, usuario.password);
+        if (!passwordValido) {
+            return res.status(400).json({ message: "Contraseña incorrecta" });
+        }
+
+        // Generamos un token JWT válido por 1 hora
+        const token = jwt.sign({ userId: usuario._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        // Enviamos el token en la respuesta
+        res.json({ token, user: { id: usuario._id, nombre: usuario.nombre, email: usuario.email } });
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor", error: error.message });
+    }
+});
+
+router.get("/perfil", authMiddleware, async (req, res) => {
+    try {
+        const usuario = await User.findById(req.user.userId).select("-password");
+        res.json(usuario);
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor" });
+    }
+});
+
 
 module.exports = router; // Exporta las rutas para que puedan usarse en `server.js`
