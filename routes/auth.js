@@ -59,6 +59,7 @@ router.post("/login", async (req, res) => {
     }
 });
 
+// **Ruta de verificacion de Token**
 router.get("/perfil", authMiddleware, async (req, res) => {
     try {
         const usuario = await User.findById(req.user.userId).select("-password");
