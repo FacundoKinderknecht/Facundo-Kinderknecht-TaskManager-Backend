@@ -65,26 +65,40 @@ router.post("/register", async (req, res) => {
 // **Ruta de Login de Usuario**
 router.post("/login", async (req, res) => {
     try {
-        // Extraemos email y password del body
         const { email, password } = req.body;
 
-        // Verificamos si el usuario existe en la base de datos
+        // 📌 **Validaciones**
+        if (!email || !password) {
+            return res.status(400).json({ message: "Todos los campos son obligatorios." });
+        }
+
+        // 📌 **Verificar si el usuario existe**
         const usuario = await User.findOne({ email });
         if (!usuario) {
-            return res.status(400).json({ message: "Usuario no encontrado" });
+            return res.status(400).json({ message: "El correo electrónico no está registrado." });
         }
 
-        // Comparamos la contraseña ingresada con la almacenada (encriptada)
-        const passwordValido = await bcrypt.compare(password, usuario.password);
-        if (!passwordValido) {
-            return res.status(400).json({ message: "Contraseña incorrecta" });
+        // 📌 **Verificar la contraseña**
+        const passwordValida = await bcrypt.compare(password, usuario.password);
+        if (!passwordValida) {
+            return res.status(400).json({ message: "Contraseña incorrecta." });
         }
 
-        // Generamos un token JWT válido por 1 hora
+        // 📌 **Generar Token JWT**
         const token = jwt.sign({ userId: usuario._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        // Enviamos el token en la respuesta
-        res.json({ token, user: { id: usuario._id, nombre: usuario.nombre, email: usuario.email } });
+        res.status(200).json({
+            message: "Inicio de sesión exitoso.",
+            token,
+            user: {
+                id: usuario._id,
+                nombre: usuario.nombre,
+                apellido: usuario.apellido,
+                email: usuario.email,
+                telefono: usuario.telefono
+            }
+        });
+
     } catch (error) {
         res.status(500).json({ message: "Error en el servidor", error: error.message });
     }
