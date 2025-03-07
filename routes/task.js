@@ -29,7 +29,7 @@ router.post("/", authMiddleware, async (req, res) => {
 // 📌 **Obtener todas las tareas del usuario autenticado**
 router.get("/", authMiddleware, async (req, res) => {
     try {
-        const tasks = await Task.find({ userId: req.user.userId });
+        const tasks = await Task.find({ userId: req.user.userId }).lean();
         res.status(200).json(tasks);
     } catch (error) {
         res.status(500).json({ message: "Error al obtener las tareas", error: error.message });
